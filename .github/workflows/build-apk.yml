@@ -1,0 +1,49 @@
+name: Build Panda's BassLab APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get project files
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Unpack app ZIP
+        run: |
+          unzip -o pandas_basslab_android_phone_build.zip -d unpacked
+          find unpacked -name package.json -print
+
+      - name: Install and build Android app
+        run: |
+          cd unpacked/pandas_basslab_android
+          npm install
+          npx cap add android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pandas-basslab-debug-apk
+          path: unpacked/pandas_basslab_android/android/app/build/outputs/apk/debug/app-debug.apk
